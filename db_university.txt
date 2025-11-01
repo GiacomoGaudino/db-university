@@ -26,42 +26,129 @@ FROM `students`;
 
 ESERCIZIO 
 
-1. Selezionare tutti gli studenti nati nel 1990 (160)
+# 1 Selezionare tutti gli studenti nati nel 1990 (160)
 SELECT `date_of_birth`
 FROM `students`
 WHERE `date_of_birth` >= '1990-01-01' 
   AND `date_of_birth` <= '1990-12-31';
   
-2. Selezionare tutti i corsi che valgono più di 10 crediti (479)
+# 2 Selezionare tutti i corsi che valgono più di 10 crediti (479)
 SELECT `cfu`
 FROM `courses`
 WHERE `cfu` > '10';
 
-3. Selezionare tutti gli studenti che hanno più di 30 anni
+# 3 Selezionare tutti gli studenti che hanno più di 30 anni
 SELECT `date_of_birth`
 FROM `students`
 WHERE `date_of_birth` <= '1995-10-28';
 
-4. Selezionare tutti i corsi del primo semestre del primo anno di un qualsiasi corso di laurea (286)
+# 4 Selezionare tutti i corsi del primo semestre del primo anno di un qualsiasi corso di laurea (286)
 SELECT `period`, `year`
 FROM `courses`
 WHERE `period` = 'I semestre' AND `year` = '1';
 
-5. Selezionare tutti gli appelli d'esame che avvengono nel pomeriggio (dopo le 14) del 20/06/2020 (21)
+# 5 Selezionare tutti gli appelli d'esame che avvengono nel pomeriggio (dopo le 14) del 20/06/2020 (21)
 SELECT `date`, `hour`
 FROM `exams`
 WHERE `date` = '2020-06-20' AND `hour` >= '14:00:00';
 
-6. Selezionare tutti i corsi di laurea magistrale (38)
+# 6 Selezionare tutti i corsi di laurea magistrale (38)
 SELECT `level`, `name`
 FROM `degrees`
 WHERE `level` = 'magistrale';
 
-7. Da quanti dipartimenti è composta l'università? (12)
+# 7 Da quanti dipartimenti è composta l'università? (12)
 SELECT `id`
 FROM `departments`;
 
-8. Quanti sono gli insegnanti che non hanno un numero di telefono? (50)
+# 8 Quanti sono gli insegnanti che non hanno un numero di telefono? (50)
 SELECT `phone`
 FROM `teachers`
 WHERE `phone` IS NULL;
+
+SELECT COUNT(*) AS total_without_phone
+FROM teachers
+WHERE phone IS NULL;
+
+# 9 Contare quanti iscritti ci sono stati ogni anno
+SELECT YEAR(students.enrolment_date) AS 'anno_iscrizione', COUNT(students.id) AS 'totale_iscritti'
+FROM `courses`
+JOIN `degrees` ON degrees.id = courses.degree_id
+JOIN `students` ON students.degree_id = degrees.id
+GROUP BY anno_iscrizione
+ORDER BY anno_iscrizione;
+
+# 10 Contare gli insegnanti che hanno l'ufficio nello stesso edificio
+SELECT COUNT(*) AS `numero_insegnanti`, `office_address`
+FROM `teachers`
+GROUP BY office_address;
+
+# 11 Calcolare la media dei voti di ogni appello d'esame
+SELECT ROUND(AVG(exam_student.vote), 2) AS 'media_voti'
+FROM exam_student
+JOIN `exams` ON exams.id = exam_student.exam_id
+GROUP BY exams.id
+ORDER BY exams.id;
+
+# 12 Contare quanti corsi di laurea ci sono per ogni dipartimento
+SELECT COUNT(degrees.id) AS 'numero_corsi_di_laurea', departments.name AS 'dipartimento'
+FROM `degrees`
+JOIN `departments` ON departments.id = degrees.department_id
+GROUP BY departments.name
+ORDER BY numero_corsi_di_laurea DESC;
+
+# 13 Selezionare tutti gli studenti iscritti al Corso di Laurea in Economia
+SELECT students.name, students.surname, degrees.name AS 'corso_di_laurea'
+FROM degrees
+JOIN students ON students.degree_id = degrees.id
+WHERE degrees.name = 'Corso di Laurea in Economia';
+
+# 14 Selezionare tutti i Corsi di Laurea Magistrale del Dipartimento di Neuroscienze
+SELECT *
+FROM degrees
+JOIN departments ON departments.id = degrees.department_id
+WHERE departments.name = 'Dipartimento di Neuroscienze' 
+AND degrees.level = 'magistrale';
+
+# 15 Selezionare tutti i corsi in cui insegna Fulvio Amato (id=44)
+SELECT courses.name AS 'corso', teachers.name AS 'nome_insegnante', teachers.surname AS 'cognome_insegnante'
+FROM course_teacher
+JOIN teachers ON course_teacher.teacher_id = teachers.id
+JOIN courses ON course_teacher.course_id = courses.id
+WHERE teachers.id = 44;
+
+# 16 Selezionare tutti gli studenti con i dati relativi al corso di laurea a cui sono iscritti e il relativo dipartimento, in ordine alfabetico per cognome e nome
+SELECT students.surname, students.name, degrees.name, departments.name
+FROM students
+JOIN degrees ON degrees.id = students.degree_id
+JOIN departments ON departments.id = degrees.department_id
+ORDER BY students.surname ASC, students.name ASC;
+
+# 17 Selezionare tutti i corsi di laurea con i relativi corsi e insegnanti
+SELECT degrees.name, courses.name, teachers.name, teachers.surname
+FROM degrees
+JOIN courses ON courses.degree_id = degrees.id
+JOIN course_teacher ON courses.id = course_teacher.course_id
+JOIN teachers ON teachers.id = course_teacher.teacher_id
+ORDER BY degrees.name;
+
+# 18 Selezionare tutti i docenti che insegnano nel Dipartimento di Matematica (54)
+SELECT DISTINCT departments.name AS 'dipartimento',teachers.surname AS 'cognome_insegnante', teachers.name AS 'nome_insegnante'
+FROM departments
+JOIN degrees ON degrees.department_id = departments.id
+JOIN courses ON courses.degree_id = degrees.id
+JOIN course_teacher ON courses.id = course_teacher.course_id
+JOIN teachers ON teachers.id = course_teacher.teacher_id
+WHERE departments.name = 'Dipartimento di Matematica'
+ORDER BY teachers.surname ASC, teachers.name ASC;
+
+# 19 Selezionare per ogni studente il numero di tentativi sostenuti per ogni esame, stampando anche il voto massimo. Successivamente, filtrare i tentativi con voto minimo 18.
+SELECT students.surname AS cognome, students.name AS nome, courses.name AS esame, MAX(exam_student.vote) AS 'voto_massimo', COUNT(*) AS numero_tentativi
+FROM exam_student
+JOIN students ON exam_student.student_id = students.id
+JOIN exams ON exam_student.exam_id = exams.id
+JOIN courses ON exams.course_id = courses.id
+WHERE exam_student.vote >= 18
+GROUP BY students.id, courses.id
+ORDER BY students.surname ASC, students.name ASC, courses.name ASC;
+
